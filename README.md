@@ -1,4 +1,7 @@
 # Script-Modern-Text-Editor
+#### GUI Text editor / Word processor developed in Python.
+
+
 
 ## About Script
 Script is a modern looking text editor with lots of basic features.
