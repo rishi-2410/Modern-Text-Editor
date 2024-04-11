@@ -1821,14 +1821,14 @@ margin-right:40px;
 """)
 
         self.statsLabel = QLabel(self.midframe)
-        self.statsLabel.setText("Status : ACTIVATED (Subscription Product)")
+        self.statsLabel.setText("Status : ACTIVATED ")
         self.statsLabel.setFont(QFont("Beware", 13))
         self.statsLabel.setAlignment(Qt.AlignLeft)
         self.statsLabel.setStyleSheet("""
 color:Black;
 margin:0px;
 margin-right:40px;
-background:green;
+background:lightgreen;
 border:1px solid green;
 """)
 
@@ -1839,7 +1839,7 @@ border:1px solid green;
         self.flashOn = True
 
         self.licLabel = QLabel(self.midframe)
-        self.licLabel.setText("License : 1heHf-92834-HkRRb-8S6Bb-4mJ90")
+        self.licLabel.setText("Developed by Rishikesh")
         self.licLabel.setFont(QFont("Beware", 13))
         self.licLabel.setAlignment(Qt.AlignLeft)
         self.licLabel.setStyleSheet("""
@@ -1882,18 +1882,32 @@ border-radius:4px;
             margin:0px;
             margin-right:40px;
             background:lightgreen;
-            border:1px solid green
+            border:1px solid green;
+            """)
+            self.licLabel.setStyleSheet("""
+            color:Black;
+            margin:0px;
+            margin-right:40px;
+            background: royalblue;
+            border:1px solid royalblue;
             """)
             self.flashOn = False
-        else:
+        elif self.flashOn:
             self.statsLabel.setStyleSheet("""
             color:Black;
             margin:0px;
             margin-right:40px;
-            background:green;
+            background:lightgreen;
             border:1px solid green;
             """)
-            self.flashOn = True
+            self.licLabel.setStyleSheet("""
+            color:Black;
+            margin:0px;
+            margin-right:40px;
+            background: royalblue;
+            border:1px solid royalblue;
+            """)
+            self.flashOn = False
 
     def closeEvent(self,event):
 
