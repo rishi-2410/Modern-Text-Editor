@@ -311,8 +311,6 @@ padding:2px;""")
         job_app_form_temp = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\job_appln_form.png"),"")
         job_app_form_temp.setIconSize(QSize(200,200))
         job_app_form_temp.clicked.connect(self.job_appn_form_temp_exec)
-        button3 = QPushButton('Button 3')
-        button4 = QPushButton('Button 4')
         
         # Create a grid layout
         grid_layout = QGridLayout()
@@ -320,8 +318,6 @@ padding:2px;""")
         # Add buttons to the grid layout
         grid_layout.addWidget(Letter_temp, 0, 0)
         grid_layout.addWidget(job_app_form_temp, 0, 1)
-        grid_layout.addWidget(button3, 1, 0)
-        grid_layout.addWidget(button4, 1, 1)
         
         # Set the layout of the QDialog to the grid layout
         self.Template_dialog.setLayout(grid_layout)
