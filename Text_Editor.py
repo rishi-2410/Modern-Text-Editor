@@ -1039,7 +1039,7 @@ margin-right:5px;
         self.abtaction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\abouticon.png"),"",self)
         self.abtaction.setIconSize(QSize(20,20))
         self.abtaction.pressed.connect(self.abtactionfunc)
-        self.abtaction.setToolTip('About Vidwo Script') 
+        self.abtaction.setToolTip('About RM Script') 
         self.abtaction.setStyleSheet("""
 background:#f5f5f5;
 margin-right:5px;
@@ -1080,7 +1080,7 @@ margin:4px;
         self.text.customContextMenuRequested.connect(self.context)
 
         self.text.textChanged.connect(self.changed)
-        self.setWindowTitle("Vidwo - Script")
+        self.setWindowTitle("RM - Script")
 
     def move_to_end(self):
         cursor = self.text.textCursor()
@@ -1761,7 +1761,7 @@ border-radius:4px;
         vinlayout=QVBoxLayout(self.topframe)
 
         self.vidLabel = QLabel(self.topframe)
-        self.vidLabel.setText("Vidwo")
+        self.vidLabel.setText("RM")
         self.vidLabel.setFont(QFont("Arial Rounded MT Bold", 30, QFont.Bold))
         self.vidLabel.setAlignment(Qt.AlignCenter)
         self.vidLabel.setStyleSheet("""
