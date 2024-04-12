@@ -5,6 +5,7 @@ from PyQt5 import QtPrintSupport
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtCore import Qt
+from PyQt5 import QtGui
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -28,7 +29,7 @@ class Main(QtWidgets.QMainWindow):
         self.filename = ""
 
         self.changesSaved = True
-        self.setWindowIcon(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\VCLOGO.png"))
+        self.setWindowIcon(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\VSLOGO.png"))
         self.initUI()
 
     def initMenubar(self):
