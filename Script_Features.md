@@ -1,6 +1,6 @@
 Main UI Image
 
-![Script UI img](https://github.com/rishi-2410/Script-Modern-Text-Editor/assets/85857942/36ae6071-99ed-4e61-9de2-94b2d340a03b)
+![Screenshot 2024-07-14 173909](https://github.com/user-attachments/assets/88061180-e816-4917-84eb-57cf9cc9623f)
 
 1. Multiple windows capability
    
@@ -25,3 +25,19 @@ Main UI Image
 7.Symbols
 
 ![Screenshot 2024-04-11 151723](https://github.com/rishi-2410/Script-Modern-Text-Editor/assets/85857942/ca6e5382-fcf8-4297-9099-291b94d8d10b)
+
+8. Equation
+
+![Screenshot 2024-07-14 174850](https://github.com/user-attachments/assets/21e208c1-e908-48a8-8337-00fef9f85830)
+
+9. Style text using CSS
+
+![Designer](https://github.com/user-attachments/assets/80759be1-09ff-4095-b58c-c0f881225c6a)
+
+10. Remove all formatting
+
+![Designer (1)](https://github.com/user-attachments/assets/3e2eb0c5-9a55-45a6-a24e-c258681e20f4)
+
+![Screenshot 2024-07-14 174635](https://github.com/user-attachments/assets/11b9777f-964d-464c-8ce5-ac31ad8e81af)
+
+
