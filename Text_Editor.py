@@ -1,7 +1,9 @@
 import sys
+import os
 from subprocess import call
 from PyQt5 import QtWidgets
 from PyQt5 import QtPrintSupport
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import QFontDatabase
 from PyQt5.QtCore import Qt
@@ -17,8 +19,12 @@ import speech_recognition as sr
 from datetime import date
 from datetime import*
 import pytz
+import ctypes
 from googletrans import Translator
-
+from PyQt5.QtGui import QSyntaxHighlighter, QTextCharFormat, QFont, QColor, QTextCursor
+from PyQt5.QtCore import Qt, QRegExp
+from ctypes import windll, c_int, c_uint, POINTER, Structure
+from PyQt5.QtMultimedia import QSound
 
 
 class Main(QtWidgets.QMainWindow):
@@ -27,10 +33,1153 @@ class Main(QtWidgets.QMainWindow):
         QtWidgets.QMainWindow.__init__(self,parent)
         self.setStyleSheet(myStyleSheet(self))
         self.filename = ""
-
         self.changesSaved = True
         self.setWindowIcon(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\VSLOGO.png"))
         self.initUI()
+
+    def create_tabs(self):
+
+        shadow_effect = QGraphicsDropShadowEffect()
+        shadow_effect.setBlurRadius(10)
+        shadow_effect.setColor(QtGui.QColor(136, 136, 136))
+        shadow_effect.setXOffset(2)
+        shadow_effect.setYOffset(2)
+
+        self.tab_widget = QTabWidget()
+        # self.tab_widget.setGraphicsEffect(shadow_effect)
+        self.tab_widget.setMovable(True)
+        tabbar = self.tab_widget.findChild(QtWidgets.QTabBar)
+        if tabbar:
+            tabbar.setFixedHeight(50)
+
+        self.tab_widget.setStyleSheet("""
+
+QTabWidget::pane { /* The tab widget frame */
+            background: white;
+            border-radius: 10px;
+            height:140px;
+        }
+        QTabWidget::tab-bar {
+            alignment: left;
+        }
+        
+        QTabBar::tab {
+            background: #e3e5e9;
+            border: 0px solid #e3e5e9;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+            margin-bottom:7px;
+                                      font-size:15px;
+        }
+                                      
+        QTabBar::tab:hover {
+            background: #e3e5e9;
+            border-bottom: 0px solid gray;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+            margin-bottom:7px;
+                                      font-weight:bold;
+                                      font-size:15px;
+        }
+        
+        QTabBar::tab:selected {
+            background: #e3e5e9;
+            border-bottom: 3px solid royalblue;
+            color:royalblue;
+            padding: 5px;
+            border-radius:3px;
+                                      font-weight:bold;
+                                      margin-bottom:7px;
+        }
+
+""")
+        # First tab
+        tab1 = QWidget()
+        self.newAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\newdoc.png"),"",self)
+        self.newAction.setShortcut("Ctrl+N")
+        self.newAction.setIconSize(QSize(60, 60))
+        self.newAction.setStatusTip("Create a new document")
+        self.newAction.setToolTip("Create a new document")
+        self.newAction.clicked.connect(self.new)
+        self.newActionlabel = QLabel("New")
+        self.newActionlabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.newActionlabel.setStyleSheet("""
+font-family:Verdana;
+                                              font size:13px;
+                                              border:none;
+                                              color:gray;
+""")
+
+        self.openAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\opendoc.png"),"",self)
+        self.openAction.setStatusTip("Open existing document")
+        self.openAction.setToolTip("Open existing document")
+        self.openAction.setShortcut("Ctrl+O")
+        self.openAction.setIconSize(QSize(25, 25))
+        self.openAction.clicked.connect(self.open)
+
+        self.customopenAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\customopen.png"),"",self)
+        self.customopenAction.setStatusTip("Open existing document via script file dialog")
+        self.customopenAction.setToolTip("Open existing document via script file dialog")
+        self.customopenAction.setShortcut("Ctrl+O")
+        self.customopenAction.setIconSize(QSize(25, 25))
+        self.customopenAction.clicked.connect(self.customopen)
+
+        self.saveAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\savedoc.png"),"",self)
+        self.saveAction.setStatusTip("Save document")
+        self.saveAction.setToolTip("Save document")
+        self.saveAction.setShortcut("Ctrl+S")
+        self.saveAction.setIconSize(QSize(25, 25))
+        self.saveAction.clicked.connect(self.save)
+
+        self.saveasPDFAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\saveaspdf.png"),"",self)
+        self.saveasPDFAction.setStatusTip("Save document as PDF")
+        self.saveasPDFAction.setToolTip("Save document as PDF")
+        self.saveasPDFAction.setShortcut("Ctrl+S")
+        self.saveasPDFAction.setIconSize(QSize(25, 25))
+        self.saveasPDFAction.clicked.connect(self.save_as_pdf)
+
+        self.printAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\print.png"),"",self)
+        self.printAction.setStatusTip("Print document")
+        self.printAction.setToolTip("Print document")
+        self.printAction.setShortcut("Ctrl+P")
+        self.printAction.setIconSize(QSize(25, 25))
+        self.printAction.clicked.connect(self.printHandler)
+
+        self.previewAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\printpreview.png"),"",self)
+        self.previewAction.setStatusTip("Preview page before printing")
+        self.previewAction.setToolTip("Preview page before printing")
+        self.previewAction.setShortcut("Ctrl+Shift+P")
+        self.previewAction.setIconSize(QSize(25, 25))
+        self.previewAction.clicked.connect(self.preview)
+
+        tab1_layout = QVBoxLayout()
+        
+        # Create a frame with horizontal layout
+        frame1 = QFrame()
+        #frame1.setFrameShape(QFrame.StyledPanel)
+        frame1.setFixedWidth(280)
+        frame1_layout = QHBoxLayout(frame1)
+        
+        # Create two frames inside frame1 with vertical layout
+        frame2 = QFrame()
+        frame2.setFrameShape(QFrame.StyledPanel)
+        frame2.setFixedWidth(100)
+        frame2_layout = QVBoxLayout(frame2)
+        frame2_layout.addWidget(self.newAction)
+        frame2_layout.addWidget(self.newActionlabel)
+        frame2.setStyleSheet("""
+border: none;      
+""")
+        
+        frame2a = QFrame()
+        frame2a.setFrameShape(QFrame.StyledPanel)
+        frame2a.setFixedWidth(50)
+        frame2a_layout = QVBoxLayout(frame2a)
+        frame2a_layout.addWidget(self.openAction)
+        frame2a_layout.addWidget(self.customopenAction)
+        frame2a.setStyleSheet("""
+border: none;      
+                              border-right: 1px solid lightgrey;
+""")
+        
+        frame3 = QFrame()
+        frame3.setFrameShape(QFrame.StyledPanel)
+        frame3.setFixedWidth(50)
+        frame3_layout = QVBoxLayout(frame3)
+        frame3_layout.addWidget(self.saveAction)
+        frame3_layout.addWidget(self.saveasPDFAction)
+        frame3.setStyleSheet("""
+QFrame {
+                border: none;
+                border-right: 1px solid lightgrey;
+            }
+""")
+
+        frame4 = QFrame()
+        frame4.setFrameShape(QFrame.StyledPanel)
+        frame4.setFixedWidth(50)
+        frame4_layout = QVBoxLayout(frame4)
+        frame4_layout.addWidget(self.printAction)
+        frame4_layout.addWidget(self.previewAction)
+        frame4.setStyleSheet("""
+border: none;     
+""")
+        
+        # Add frame2 and frame3 to frame1's layout
+        frame1_layout.addWidget(frame2)
+        frame1_layout.addWidget(frame2a)
+        frame1_layout.addWidget(frame3)
+        frame1_layout.addWidget(frame4)
+        
+        tab1_layout.addWidget(frame1)
+        tab1.setLayout(tab1_layout)
+        
+        # Second tab
+        tab2 = QWidget()
+        tab2_layout = QVBoxLayout()
+
+        self.cutAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\cut.png"), "", self)
+        self.cutAction.setShortcut("Ctrl+X")
+        self.cutAction.setIconSize(QSize(25, 25))
+        self.cutAction.setStatusTip("Delete and copy text to clipboard")
+        self.cutAction.setToolTip("Cut to clipboard")
+        self.cutAction.clicked.connect(self.text.cut)
+
+        self.copyAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\copy.png"), "", self)
+        self.copyAction.setShortcut("Ctrl+C")
+        self.copyAction.setIconSize(QSize(25, 25))
+        self.copyAction.setToolTip("Copy to clipboard")
+        self.copyAction.clicked.connect(self.text.copy)
+        self.copyAction.clicked.connect(lambda: self.statusbar.showMessage("Text copied to clipboard", 2000))
+
+        self.pasteAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\paste.png"), "", self)
+        self.pasteAction.setShortcut("Ctrl+V")
+        self.pasteAction.setIconSize(QSize(25, 25))
+        self.pasteAction.setStatusTip("Paste text from clipboard")
+        self.pasteAction.setToolTip("Paste from clipboard")
+        self.pasteAction.clicked.connect(self.text.paste)
+
+        self.selectallAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\selectall.png"), "", self)
+        self.selectallAction.setShortcut("Ctrl+A")
+        self.selectallAction.setIconSize(QSize(25, 25))
+        self.selectallAction.setStatusTip("Select all the text")
+        self.selectallAction.setToolTip("Select all the text")
+        self.selectallAction.clicked.connect(self.text.selectAll)
+
+        self.undoAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\undo.png"), "", self)
+        self.undoAction.setShortcut("Ctrl+Z")
+        self.undoAction.setIconSize(QSize(25, 25))
+        self.undoAction.setStatusTip("Undo last action")
+        self.undoAction.setToolTip("Undo last action")
+        self.undoAction.clicked.connect(self.text.undo)
+
+        self.redoAction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\redo.png"), "", self)
+        self.redoAction.setShortcut("Ctrl+Y")
+        self.redoAction.setIconSize(QSize(25, 25))
+        self.redoAction.setStatusTip("Redo last action")
+        self.redoAction.setToolTip("Redo last action")
+        self.redoAction.clicked.connect(self.text.redo)
+
+        frame1 = QFrame()
+        frame1.setFixedWidth(1140)
+        frame1_layout = QHBoxLayout(frame1)
+        
+        frame2 = QFrame()
+        frame2.setFrameShape(QFrame.StyledPanel)
+        frame2.setFixedWidth(50)
+        frame2_layout = QVBoxLayout(frame2)
+        frame2_layout.addWidget(self.cutAction)
+        frame2_layout.addWidget(self.selectallAction)
+        frame2.setStyleSheet("""
+border: none;  
+""")
+        
+        frame3 = QFrame()
+        frame3.setFrameShape(QFrame.StyledPanel)
+        frame3.setFixedWidth(50)
+        frame3_layout = QVBoxLayout(frame3)
+        frame3_layout.addWidget(self.copyAction)
+        frame3_layout.addWidget(self.pasteAction)
+        frame3.setStyleSheet("""
+QFrame {
+                border: none;
+                border-right: 1px solid lightgrey;
+            }   
+""")
+
+        frame4 = QFrame()
+        frame4.setFrameShape(QFrame.StyledPanel)
+        frame4.setFixedWidth(50)
+        frame4_layout = QVBoxLayout(frame4)
+        frame4_layout.addWidget(self.undoAction)
+        frame4_layout.addWidget(self.redoAction)
+        frame4.setStyleSheet("""
+QFrame {
+                border: none;
+                border-right: 1px solid lightgrey;
+            }
+""")
+        
+        frame5 = QtWidgets.QFrame()
+        frame5.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        frame5.setFixedWidth(180)
+        frame5_layout = QtWidgets.QVBoxLayout(frame5)
+        frame5.setStyleSheet("""
+QFrame {
+                border: none;
+                             border-right: 1px solid lightgrey;
+                             margin-right:10px;
+            }
+""")
+
+        fontBox = QtWidgets.QFontComboBox(self)
+        fontBox.currentFontChanged.connect(lambda font: self.text.setCurrentFont(font))
+        fontBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        fontBox.setMaximumSize(180, 28)
+        fontBox.setStyleSheet("""
+            QComboBox {
+                font-size: 15px;
+                background-color: #FFFFFF;
+                selection-background-color: royalblue;
+                selection-color: white;
+                border: 1px solid #CCCCCC;
+                padding: 2px;
+                border-radius: 4px;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left-width: 1px;
+                border-left-color: darkgray;
+                border-left-style: solid;
+                background: white;
+                image: url(C:/Users/rishi/OneDrive/Documents/VS_Icons/dda.png);
+                background-size: 5px;
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+            }
+        """)
+
+
+        fontSize = QtWidgets.QComboBox(self)
+        fontSize.setEditable(True)
+        fontSize.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        fontSize.setMaximumSize(70, 28)
+        fontSize.setStyleSheet("""
+            QComboBox {
+                font-size: 15px;
+                background-color: #FFFFFF;
+                selection-background-color: royalblue;
+                selection-color: white;
+                border: 1px solid #CCCCCC;
+                padding: 2px;
+                border-radius: 4px;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left-width: 1px;
+                border-left-color: darkgray;
+                border-left-style: solid;
+                background: white;
+                image: url(C:/Users/rishi/OneDrive/Documents/VS_Icons/dda.png);
+                background-size: 5px;
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+            }
+        """)
+
+        for size in range(8, 100, 2):
+            fontSize.addItem(f"{size} pt")
+
+        fontSize.currentIndexChanged.connect(self.setFontSize)
+
+        fontSize.setCurrentIndex(1)
+        frame5_layout.addWidget(fontBox)
+        frame5_layout.addWidget(fontSize)
+
+        self.underline_combo = QtWidgets.QComboBox()
+        self.underline_combo.addItem("No Underline", QTextCharFormat.NoUnderline)
+        self.underline_combo.addItem("Solid Line", QTextCharFormat.SingleUnderline)
+        self.underline_combo.addItem("Dashed Line", QTextCharFormat.DashUnderline)
+        self.underline_combo.addItem("Dotted Line", QTextCharFormat.DotLine)
+        self.underline_combo.addItem("Dash Dot Line", QTextCharFormat.DashDotLine)
+        self.underline_combo.addItem("Dash Dot Dot Line", QTextCharFormat.DashDotDotLine)
+        self.underline_combo.addItem("Wave Line", QTextCharFormat.WaveUnderline)
+        self.underline_combo.currentIndexChanged.connect(self.applyFormatting)
+        self.underline_combo.setStyleSheet("""
+QComboBox {
+                font-size: 15px;
+                background-color: #FFFFFF;
+                selection-background-color: royalblue;
+                selection-color: white;
+                border: 1px solid #CCCCCC;
+                padding: 2px;
+                border-radius:4px;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left-width: 1px;
+                border-left-color: darkgray;
+                border-left-style: solid;
+                background:white;
+                image: url(C:/Users/rishi/OneDrive/Documents/VS_Icons/dda.png);
+                background-size: 5px;
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+            }
+""")
+        self.comboStyle = QtWidgets.QComboBox()
+        index = 0
+        self.comboStyle.setEditable(True)
+        icon = QIcon('C:\\Users\\rishi\\OneDrive\\Desktop\\Vidwo Worsksuit SCRIPT\\ICON\\bulletlist.png')
+        self.comboStyle.setItemIcon(0 , QIcon('C:\\Users\\rishi\\OneDrive\\Desktop\\Vidwo Worsksuit SCRIPT\\ICON\\bulletlist.png'))
+        self.comboStyle.addItem("No bullet", 0)
+        self.comboStyle.addItem("●", 1)
+        self.comboStyle.addItem("○", 2)
+        self.comboStyle.addItem("■", 3)
+        self.comboStyle.addItem("⒈", 4)
+        self.comboStyle.addItem("a.", 5)
+        self.comboStyle.addItem("A.", 6)
+        self.comboStyle.addItem("ⅰ", 7)
+        self.comboStyle.addItem("Ⅰ", 8)
+        self.comboStyle.setStyleSheet("""
+QComboBox {
+                font-size: 15px;
+                background-color: #FFFFFF;
+                selection-background-color: royalblue;
+                selection-color: white;
+                border: 1px solid #CCCCCC;
+                padding: 2px;
+                padding-left:5px;
+                border-radius:4px;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left-width: 1px;
+                border-left-color: darkgray;
+                border-left-style: solid;
+                background:white;
+                image: url(C:/Users/rishi/OneDrive/Documents/VS_Icons/dda.png);
+                background-size: 5px;
+                background-repeat: no-repeat;
+                background-position: right 10px center;
+            }
+""")
+        self.comboStyle.activated.connect(self.textStyle)
+
+        fontColorButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/fontcolor.png"), "", self)
+        fontColorButton.clicked.connect(self.fontColorChanged)
+        fontColorButton.setIconSize(QSize(25, 25))
+        fontColorButton.setToolTip("Change font color")
+        fontColorButton.setStatusTip("Change font color")
+
+        bgActButton = QtWidgets.QPushButton(QtGui.QIcon('C:/Users/rishi/OneDrive/Documents/VS_Icons/pgbgcolor.png'),"", self)
+        bgActButton.clicked.connect(self.changeBGColor)
+        bgActButton.setIconSize(QSize(25, 25))
+        bgActButton.setToolTip("Change Background Color")
+        bgActButton.setStatusTip("Change Background Color")
+
+        self.backColorButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/bgcolor.png"), "", self)
+        self.backColorButton.clicked.connect(self.highlight)
+        self.backColorButton.setIconSize(QtCore.QSize(25, 25))
+        self.backColorButton.setToolTip("Change background color")
+        self.backColorButton.setStatusTip("Change background color")
+
+        remformattingbtn = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/remform.png"), "", self)
+        remformattingbtn.clicked.connect(self.remove_formatting)
+        remformattingbtn.setIconSize(QtCore.QSize(25, 25))
+        remformattingbtn.setToolTip("Remove all formatting on text")
+        remformattingbtn.setStatusTip("Remove all formatting on text")
+
+        boldButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/bold.png"), "", self)
+        boldButton.clicked.connect(self.bold)
+        boldButton.setIconSize(QSize(25, 25))
+        boldButton.setToolTip("Bold")
+        boldButton.setStatusTip("Bold")
+
+        italicButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/italic.png"), "", self)
+        italicButton.clicked.connect(self.italic)
+        italicButton.setIconSize(QSize(25, 25))
+        italicButton.setToolTip("Italic")
+        italicButton.setStatusTip("Italic")
+
+        underlButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/underline.png"), "", self)
+        underlButton.clicked.connect(self.underline)
+        underlButton.setIconSize(QSize(25, 25))
+        underlButton.setToolTip("Underline")
+        underlButton.setStatusTip("Underline")
+
+        strikeButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/strikeout.png"), "", self)
+        strikeButton.clicked.connect(self.strike)
+        strikeButton.setIconSize(QSize(25, 25))
+        strikeButton.setToolTip("Strike-out")
+        strikeButton.setStatusTip("Strike-out")
+
+        superButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/superscript.png"), "", self)
+        superButton.clicked.connect(self.superScript)
+        superButton.setIconSize(QSize(25, 25))
+        superButton.setToolTip("Superscript")
+        superButton.setStatusTip("Superscript")
+
+        subButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/subscript.png"), "", self)
+        subButton.clicked.connect(self.subScript)
+        subButton.setIconSize(QSize(25, 25))
+        subButton.setToolTip("Subscript")
+        subButton.setStatusTip("Subscript")
+
+        capAllButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/Capall.png"), "", self)
+        capAllButton.clicked.connect(self.capitalizeSelectedText)
+        capAllButton.setIconSize(QSize(25, 25))
+        capAllButton.setToolTip("Capitalize Selected Text")
+        capAllButton.setStatusTip("Capitalize Selected Text")
+
+        lowAllButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/Lowall.png"), "", self)
+        lowAllButton.clicked.connect(self.lowercaseSelectedText)
+        lowAllButton.setIconSize(QSize(25, 25))
+        lowAllButton.setToolTip("Lowercase Selected Text")
+        lowAllButton.setStatusTip("Lowercase Selected Text")
+
+        swapAllButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/swapcase.png"), "", self)
+        swapAllButton.clicked.connect(self.swapcaseSelectedText)
+        swapAllButton.setIconSize(QSize(25, 25))
+        swapAllButton.setToolTip("Swapcase Selected Text")
+        swapAllButton.setStatusTip("Swapcase Selected Text")
+
+        self.alignCenterButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\center.png"), "", self)
+        self.alignCenterButton.setIconSize(QSize(25, 25))
+        self.alignCenterButton.setStatusTip("Align center")
+        self.alignCenterButton.setToolTip("Align center")
+        self.alignCenterButton.clicked.connect(self.alignCenterf)
+
+        self.alignLeftButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\left.png"), "", self)
+        self.alignLeftButton.setIconSize(QSize(25, 25))
+        self.alignLeftButton.setStatusTip("Align right")
+        self.alignLeftButton.setToolTip("Align right")
+        self.alignLeftButton.clicked.connect(self.alignLeftf)
+
+        self.alignRightButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\right.png"), "", self)
+        self.alignRightButton.setIconSize(QSize(25, 25))
+        self.alignRightButton.setStatusTip("Align right")
+        self.alignRightButton.setToolTip("Align right")
+        self.alignRightButton.clicked.connect(self.alignRightf)
+
+        self.alignJustifyButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\justify.png"), "", self)
+        self.alignJustifyButton.setIconSize(QSize(25, 25))
+        self.alignJustifyButton.setStatusTip("Align justify")
+        self.alignJustifyButton.setToolTip("Align justify")
+        self.alignJustifyButton.clicked.connect(self.alignJustifyf)
+
+        indentButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\indent.png"), "", self)
+        indentButton.setIconSize(QSize(25, 25))
+        indentButton.setShortcut("Ctrl+Tab")
+        indentButton.setStatusTip("Indent Area")
+        indentButton.setToolTip("Indent Area")
+        indentButton.clicked.connect(self.indent)
+
+        dedentButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\dedent.png"), "", self)
+        dedentButton.setIconSize(QSize(25, 25))
+        dedentButton.setShortcut("Shift+Tab")
+        dedentButton.setStatusTip("Dedent Area")
+        dedentButton.setToolTip("Dedent Area")
+        dedentButton.clicked.connect(self.dedent)
+
+        templateButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\template.png"), "", self)
+        templateButton.setIconSize(QSize(25, 25))
+        templateButton.setStatusTip("Explore Templates")
+        templateButton.setToolTip("Explore Templates")
+        templateButton.clicked.connect(self.template_Dialog)
+
+        translateButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\translate.png"), "", self)
+        translateButton.setIconSize(QSize(25, 25))
+        translateButton.setStatusTip("Translate")
+        translateButton.setToolTip("Translate")
+        translateButton.clicked.connect(self.translate_Dialog)
+
+        editPageBodyButton = QtWidgets.QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\edithtmlpagebody.png"), "", self)
+        editPageBodyButton.setIconSize(QSize(60, 60))
+        editPageBodyButton.setStatusTip("Edit page body using HTML")
+        editPageBodyButton.setToolTip("Edit page body using HTML")
+        editPageBodyButton.clicked.connect(self.editBody)
+        editPageBodyButtonlabel = QLabel("Page HTML")
+        editPageBodyButtonlabel.setAlignment(QtCore.Qt.AlignCenter)
+        editPageBodyButtonlabel.setStyleSheet("""
+font-family:Verdana;
+                                              font size:13px;
+                                              border:none;
+                                              color:gray;
+""")
+
+        frame6 = QFrame()
+        frame6.setFrameShape(QFrame.StyledPanel)
+        frame6.setFixedWidth(70)
+        frame6_layout = QVBoxLayout(frame6)
+        frame6_layout.addWidget(fontColorButton)
+        frame6_layout.addWidget(bgActButton)
+        frame6.setStyleSheet("""
+QFrame {
+                             margin-left:25px;
+                border: none;
+            }    
+""")
+        
+        frame6a = QFrame()
+        frame6a.setFrameShape(QFrame.StyledPanel)
+        frame6a.setFixedWidth(50)
+        frame6a_layout = QVBoxLayout(frame6a)
+        frame6a_layout.addWidget(self.backColorButton)
+        frame6a_layout.addWidget(remformattingbtn)
+        frame6a.setStyleSheet("""
+QFrame {
+                border: none;
+            }    
+""")
+        
+        frame6b = QFrame()
+        frame6b.setFrameShape(QFrame.StyledPanel)
+        frame6b.setFixedWidth(90)
+        frame6b_layout = QVBoxLayout(frame6b)
+        frame6b_layout.addWidget(editPageBodyButton)
+        frame6b_layout.addWidget(editPageBodyButtonlabel)
+        frame6b.setStyleSheet("""
+QFrame {
+                border: none;
+                border-right: 1px solid lightgrey;
+            }    
+""")
+
+        frame7 = QFrame()
+        frame7.setFrameShape(QFrame.StyledPanel)
+        frame7.setFixedWidth(130)
+        frame7_layout = QVBoxLayout(frame7)
+        frame7_layout.addWidget(self.comboStyle)
+        frame7_layout.addWidget(self.underline_combo)
+        frame7.setStyleSheet("""
+border: none;      
+""")
+        
+        frame7a = QFrame()
+        frame7a.setFrameShape(QFrame.StyledPanel)
+        frame7a.setFixedWidth(50)
+        frame7a_layout = QVBoxLayout(frame7a)
+        frame7a_layout.addWidget(strikeButton)
+        frame7a_layout.addWidget(underlButton)
+        frame7a.setStyleSheet("""
+border: none;     
+""")
+        
+        frame8 = QFrame()
+        frame8.setFrameShape(QFrame.StyledPanel)
+        frame8.setFixedWidth(50)
+        frame8_layout = QVBoxLayout(frame8)
+        frame8_layout.addWidget(boldButton)
+        frame8_layout.addWidget(italicButton)
+        frame8.setStyleSheet("""
+border: none;      
+""")
+        
+        frame9 = QFrame()
+        frame9.setFrameShape(QFrame.StyledPanel)
+        frame9.setFixedWidth(50)
+        frame9_layout = QVBoxLayout(frame9)
+        frame9_layout.addWidget(superButton)
+        frame9_layout.addWidget(subButton)
+        frame9.setStyleSheet("""
+border: none;    
+""")
+        
+        frame10 = QFrame()
+        frame10.setFrameShape(QFrame.StyledPanel)
+        frame10.setFixedWidth(50)
+        frame10_layout = QVBoxLayout(frame10)
+        frame10_layout.addWidget(capAllButton)
+        frame10_layout.addWidget(lowAllButton)
+        frame10_layout.addWidget(swapAllButton)
+        frame10.setStyleSheet("""
+QFrame {
+                border: none;
+                border-right: 1px solid lightgrey;
+            } 
+""")
+        
+        frame11 = QFrame()
+        frame11.setFrameShape(QFrame.StyledPanel)
+        frame11.setFixedWidth(50)
+        frame11_layout = QVBoxLayout(frame11)
+        frame11_layout.addWidget(self.alignLeftButton)
+        frame11_layout.addWidget(self.alignRightButton)
+        frame11.setStyleSheet("""
+border: none;    
+""")
+        frame12 = QFrame()
+        frame12.setFrameShape(QFrame.StyledPanel)
+        frame12.setFixedWidth(50)
+        frame12_layout = QVBoxLayout(frame12)
+        frame12_layout.addWidget(self.alignCenterButton)
+        frame12_layout.addWidget(self.alignJustifyButton)
+        frame12.setStyleSheet("""
+border: none;    
+""")
+        frame13 = QFrame()
+        frame13.setFrameShape(QFrame.StyledPanel)
+        frame13.setFixedWidth(50)
+        frame13_layout = QVBoxLayout(frame13)
+        frame13_layout.addWidget(indentButton)
+        frame13_layout.addWidget(dedentButton)
+        frame13.setStyleSheet("""
+QFrame{
+                              border:none;
+                              border-right:1px solid lightgrey;
+                              }   
+""")
+        
+        frame14 = QFrame()
+        frame14.setFrameShape(QFrame.StyledPanel)
+        frame14.setFixedWidth(50)
+        frame14_layout = QVBoxLayout(frame14)
+        frame14_layout.addWidget(templateButton)
+        frame14_layout.addWidget(translateButton)
+        frame14.setStyleSheet("""
+border: none;    
+""")
+
+        frame1_layout.addWidget(frame2)
+        frame1_layout.addWidget(frame3)
+        frame1_layout.addWidget(frame4)
+        frame1_layout.addWidget(frame5)
+        frame1_layout.addWidget(frame6)
+        frame1_layout.addWidget(frame6a)
+        frame1_layout.addWidget(frame6b)
+        frame1_layout.addWidget(frame7)
+        frame1_layout.addWidget(frame7a)
+        frame1_layout.addWidget(frame8)
+        frame1_layout.addWidget(frame9)
+        frame1_layout.addWidget(frame10)
+        frame1_layout.addWidget(frame11)
+        frame1_layout.addWidget(frame12)
+        frame1_layout.addWidget(frame13)
+        frame1_layout.addWidget(frame14)
+        
+        tab2_layout.addWidget(frame1)
+        tab2.setLayout(tab2_layout)
+
+        # Third tab
+        tab3 = QWidget()
+
+        self.dateTimeButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/datetime.png"), "", self)
+        self.dateTimeButton.clicked.connect(self.calendershow)
+        self.dateTimeButton.setIconSize(QtCore.QSize(60, 60))
+        self.dateTimeButton.setToolTip("Insert current date/time")
+        self.dateTimeButton.setStatusTip("Insert current date/time")
+        self.dateTimeButtonlabel = QLabel("Date & Time")
+        self.dateTimeButtonlabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.dateTimeButtonlabel.setStyleSheet("""
+font-family:Verdana;
+                                              font size:13px;
+                                              border:none;
+                                              color:gray;
+                                              alignment:center;
+""")
+
+        self.tableButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/table.png"), "", self)
+        self.tableButton.clicked.connect(self.tableDialog)
+        self.tableButton.setIconSize(QtCore.QSize(60, 60))
+        self.tableButton.setToolTip("Insert table")
+        self.tableButton.setStatusTip("Insert table")
+        self.tableButtonlabel = QLabel("Table")
+        self.tableButtonlabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.tableButtonlabel.setStyleSheet("""
+font-family:Verdana;
+                                              font size:13px;
+                                              border:none;
+                                              color:gray;
+                                              alignment:center;
+""")
+
+        self.imageButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/add_image.png"), "", self)
+        self.imageButton.clicked.connect(self.insertImage)
+        self.imageButton.setIconSize(QtCore.QSize(60, 60))
+        self.imageButton.setToolTip("Insert image")
+        self.imageButton.setStatusTip("Insert image")
+        self.imageButtonlabel = QLabel("Images")
+        self.imageButtonlabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.imageButtonlabel.setStyleSheet("""
+font-family:Verdana;
+                                              font size:13px;
+                                              border:none;
+                                              color:gray;
+                                              alignment:center;
+""")
+
+        self.symbolButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/symico.png"), "", self)
+        self.symbolButton.clicked.connect(self.symbol_win)
+        self.symbolButton.setIconSize(QtCore.QSize(25, 25))
+        self.symbolButton.setToolTip("Symbols")
+
+        self.equationButton = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/equation.png"), "", self)
+        self.equationButton.clicked.connect(self.eq_win)
+        self.equationButton.setIconSize(QtCore.QSize(25, 25))
+        self.equationButton.setToolTip("Equation")
+
+        self.insertlink = QtWidgets.QPushButton(QtGui.QIcon("C:/Users/rishi/OneDrive/Documents/VS_Icons/insertlink1.png"), "", self)
+        self.insertlink.clicked.connect(self.open_link_dialog)
+        self.insertlink.setIconSize(QtCore.QSize(25, 25))
+        self.insertlink.setToolTip("Symbols")
+        
+        tab3_layout = QVBoxLayout()
+
+        frame1 = QFrame()
+        frame1.setFixedWidth(410)
+        frame1_layout = QHBoxLayout(frame1)
+
+        # Create two frames inside frame1 with vertical layout
+        frame2 = QtWidgets.QFrame()
+        frame2.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        frame2.setFixedWidth(100)
+        frame2_layout = QtWidgets.QVBoxLayout(frame2)
+        frame2_layout.addWidget(self.tableButton)
+        frame2_layout.addWidget(self.tableButtonlabel)
+        frame2.setStyleSheet("""
+        QFrame {
+            border: none;
+            border-right: 1px solid lightgrey;
+        }
+        """)
+
+        frame3 = QFrame()
+        frame3.setFrameShape(QFrame.StyledPanel)
+        frame3.setFixedWidth(100)
+        frame3_layout = QVBoxLayout(frame3)
+        frame3_layout.addWidget(self.imageButton)
+        frame3_layout.addWidget(self.imageButtonlabel)
+        frame3.setStyleSheet("""
+        QFrame {
+            border: none;
+            border-right: 1px solid lightgrey;
+        }
+        """)
+
+        frame4 = QFrame()
+        frame4.setFrameShape(QFrame.StyledPanel)
+        frame4.setFixedWidth(100)
+        frame4_layout = QVBoxLayout(frame4)
+        frame4_layout.addWidget(self.dateTimeButton)
+        frame4_layout.addWidget(self.dateTimeButtonlabel)
+        frame4.setStyleSheet("""
+        QFrame {
+            border: none;
+            border-right: 1px solid lightgrey;
+        }
+        """)
+
+        frame5 = QFrame()
+        frame5.setFrameShape(QFrame.StyledPanel)
+        frame5.setFixedWidth(50)
+        frame5_layout = QVBoxLayout(frame5)
+        frame5_layout.addWidget(self.symbolButton)
+        frame5_layout.addWidget(self.equationButton)
+        frame5.setStyleSheet("""
+        QFrame {
+            border: none;
+            border-right: 1px solid lightgrey;
+                             margin-right:5px;
+        }
+        """)
+
+        frame6 = QFrame()
+        frame6.setFrameShape(QFrame.StyledPanel)
+        frame6.setFixedWidth(50)
+        frame6_layout = QVBoxLayout(frame6)
+        frame6_layout.addWidget(self.insertlink)
+        frame6.setStyleSheet("""
+        QFrame {
+            border: none;
+        }
+        """)
+
+        frame1_layout.addWidget(frame2)
+        frame1_layout.addWidget(frame3)
+        frame1_layout.addWidget(frame4)
+        frame1_layout.addWidget(frame5)
+        frame1_layout.addWidget(frame6)
+
+        tab3_layout.addWidget(frame1)
+        tab3.setLayout(tab3_layout)
+
+        tab4 = QWidget()
+        tab4_layout = QVBoxLayout()
+        toolbar4 = QToolBar()
+        tab4_layout.addWidget(toolbar4)
+        tab4.setLayout(tab4_layout)
+
+        # Add tabs to the QTabWidget
+        self.tab_widget.addTab(tab1, 'File')
+        self.tab_widget.addTab(tab2, 'Home')
+        self.tab_widget.addTab(tab3, 'Insert')
+        self.tab_widget.addTab(tab4, 'Format')
+        initialTabIndex = 1  # Tab 2 (index starts from 0)
+        self.tab_widget.setCurrentIndex(initialTabIndex)
+
+    def open_link_dialog(self):
+        cursor = self.text.textCursor()
+        selected_text = cursor.selectedText()
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle('Insert Link')
+
+        layout = QVBoxLayout(dialog)
+
+        tab_widget = QTabWidget()
+        web_link_tab = QWidget()
+        tab_widget.addTab(web_link_tab, "Web Link")
+
+        web_link_layout = QVBoxLayout(web_link_tab)
+
+        text_label = QLabel("Selected Text:")
+        web_link_layout.addWidget(text_label)
+
+        text_edit = QLineEdit(selected_text)
+        text_edit.setReadOnly(True)  # Make the selected text read-only
+        web_link_layout.addWidget(text_edit)
+
+        link_label = QLabel("URL:")
+        web_link_layout.addWidget(link_label)
+
+        link_edit = QLineEdit()
+        web_link_layout.addWidget(link_edit)
+
+        insert_button = QPushButton("Insert Link")
+        web_link_layout.addWidget(insert_button)
+
+        layout.addWidget(tab_widget)
+        dialog.setLayout(layout)
+
+        def insert_link():
+            text = text_edit.text()  # Use the text_edit QLineEdit to get the selected text
+            url = link_edit.text()
+            if not url:
+                QMessageBox.warning(dialog, "Error", "URL cannot be empty")
+                return
+            link = f'<a href="{url}">{text}</a>'
+            cursor.insertHtml(link)
+            dialog.accept()
+
+        insert_button.clicked.connect(insert_link)
+
+        dialog.exec_()
+
+    def remove_formatting(self):
+        cursor = self.text.textCursor()
+        if cursor.hasSelection():
+            # Clear formatting
+            char_format = QtGui.QTextCharFormat()
+            char_format.setFontWeight(QtGui.QFont.Normal)
+            char_format.setFontItalic(False)
+            char_format.setFontUnderline(False)
+            char_format.setForeground(QtGui.QBrush(QtCore.Qt.black))
+            char_format.setBackground(QtGui.QBrush(QtCore.Qt.transparent))
+            cursor.mergeCharFormat(char_format)
+
+    def customopen(self):
+        customopendialog = QtWidgets.QDialog(self)
+        customopendialog.setWindowTitle("Script - File Dialog")
+        customopendialog.setStyleSheet("""
+background:white;
+""")
+
+        # Main layout for the dialog
+        main_layout = QtWidgets.QVBoxLayout(customopendialog)
+
+        # Layout for folder path input
+        path_input_layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(path_input_layout)
+
+        # Line edit for folder path input
+        self.folderLineEdit = QtWidgets.QLineEdit()
+        self.folderLineEdit.setPlaceholderText("Enter folder path here")
+        self.folderLineEdit.setStyleSheet("""
+QLineEdit {
+    border-radius: 5px;
+    font-size: 15px;
+    padding:3px;
+    font-family: Verdana;
+    background: white;
+    border:1px solid lightgrey;
+}
+""")
+        path_input_layout.addWidget(self.folderLineEdit)
+
+        # Button to trigger folder scan
+        self.scanButton = QtWidgets.QPushButton("Scan for Files")
+        self.scanButton.clicked.connect(self.on_folder_entered)
+        self.scanButton.setStyleSheet("""
+padding:4px;
+background:royalblue;
+font-weight:bold;
+color:white;
+                                      font-size:15px;
+                                      border-radius:5px;
+""")
+        path_input_layout.addWidget(self.scanButton)
+
+        # Layout for extension input
+        ext_input_layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(ext_input_layout)
+
+        # Line edit for extension input
+        self.extensionLineEdit = QtWidgets.QLineEdit()
+        self.extensionLineEdit.setPlaceholderText("Enter file extension (e.g., .txt)")
+        self.extensionLineEdit.setStyleSheet("""
+QLineEdit {
+    border-radius: 5px;
+    font-size: 15px;
+    padding:3px;
+    font-family: Courier;
+    background: white;
+    border:1px solid lightgrey;
+}
+""")
+        ext_input_layout.addWidget(self.extensionLineEdit)
+
+        # Layout for tree view and list widget
+        content_layout = QtWidgets.QHBoxLayout()
+        main_layout.addLayout(content_layout)
+
+        # Tree view for folder selection
+        self.treeView = QtWidgets.QTreeView()
+        content_layout.addWidget(self.treeView)
+
+        # Set up the file system model
+        self.model = QtWidgets.QFileSystemModel()
+        self.model.setRootPath(QtCore.QDir.rootPath())
+        self.treeView.setModel(self.model)
+        self.treeView.setRootIndex(self.model.index(QtCore.QDir.rootPath()))
+        self.treeView.setColumnWidth(0, 250)
+
+        # Apply stylesheet to tree view for border radius
+        self.treeView.setStyleSheet("""
+            QTreeView {
+                border-radius: 10px;
+                border: 1px solid lightgrey;
+            }
+            QTreeView::item:selected {
+                background-color: royalblue;
+                color: white;
+                border-radius:6px;
+
+            }
+            QTreeView::item {
+            border-radius:6px;
+            background:white;
+                                    margin:2px;
+                                    padding:2px;
+            }
+                                    QTreeView::item:hover {
+            border-radius:6px;
+            background:white;
+                                    margin:2px;
+                                    padding:2px;
+                border: 2px solid royalblue;
+                                      color:royalblue;
+            }
+        """)
+
+        # Connect the selection signal
+        self.treeView.selectionModel().selectionChanged.connect(self.on_folder_selected)
+
+        # List widget to display files
+        self.listWidget = QtWidgets.QListWidget()
+        content_layout.addWidget(self.listWidget)
+
+        # Apply stylesheet to list widget for text size, border radius, and selection color
+        self.listWidget.setStyleSheet("""
+            QListWidget {
+                border-radius: 10px;
+                border: 1px solid royalblue;
+                padding: 5px;
+            }
+            QListWidget::item {
+                border-radius: 5px;
+                border: 1px solid lightgrey;
+                margin: 2px;
+                padding: 5px;
+                font-size: 14pt;
+            }
+            QListWidget::item:hover {
+                border-radius: 5px;
+                border: 2px solid royalblue;
+                                      color:royalblue;
+                margin: 2px;
+                padding: 5px;
+                font-size: 14pt;
+            }
+            QListWidget::item:selected {
+                background-color: royalblue;
+                color: white;
+            }
+        """)
+
+        # Connect item selection to update line edit with file path
+        self.listWidget.itemSelectionChanged.connect(self.on_item_selected)
+
+        # Label to show status
+        self.statusLabel = QtWidgets.QLabel("")
+        main_layout.addWidget(self.statusLabel)
+
+        customopendialog.resize(800, 600)
+        customopendialog.exec_()
+
+    def on_folder_entered(self):
+        # Get the directory from the line edit
+        folder_path = self.folderLineEdit.text()
+        if os.path.isdir(folder_path):
+            self.statusLabel.setText(f"Selected folder: {folder_path}")
+            self.scan_for_files(folder_path)
+            # Expand the tree view to the entered directory
+            index = self.model.index(folder_path)
+            if index.isValid():
+                self.treeView.setCurrentIndex(index)
+                self.treeView.scrollTo(index, QtWidgets.QAbstractItemView.PositionAtCenter)
+        else:
+            self.statusLabel.setText("Invalid folder path. Please enter a valid directory.")
+
+    def on_folder_selected(self, selected, deselected):
+        indexes = self.treeView.selectionModel().selectedIndexes()
+        if indexes:
+            # Get the selected folder path
+            folder_path = self.model.filePath(indexes[0])
+            if os.path.isdir(folder_path):
+                self.statusLabel.setText(f"Selected folder: {folder_path}")
+                self.scan_for_files(folder_path)
+
+    def scan_for_files(self, directory):
+        self.statusLabel.setText("Scanning for files...")
+        QtWidgets.QApplication.processEvents()  # Update the UI
+
+        extension = self.extensionLineEdit.text().strip()
+        files = self.find_files(directory, extension)
+        self.listWidget.clear()
+        for file_path in files:
+            file_name = os.path.basename(file_path)
+            list_item = QtWidgets.QListWidgetItem(file_name)
+            list_item.setData(QtCore.Qt.UserRole, file_path)
+            self.listWidget.addItem(list_item)
+        
+        self.statusLabel.setText(f"<span style='color:green'>Found {len(files)} files in {directory}</span>")
+
+    def find_files(self, directory, extension):
+        files = []
+        for root, dirs, files_in_dir in os.walk(directory):
+            for file in files_in_dir:
+                if not extension or file.endswith(extension):
+                    files.append(os.path.join(root, file))
+        return files
+
+    def on_item_selected(self):
+        selected_items = self.listWidget.selectedItems()
+        if selected_items:
+            file_path = selected_items[0].data(QtCore.Qt.UserRole)
+            self.folderLineEdit.setText(file_path)
+            self.open_file_in_textedit(file_path)
+
+    def open_file_in_textedit(self, file_path):
+        try:
+            with open(file_path, 'r') as file:
+                content = file.read()
+                self.text.setText(content)
+        except Exception as e:
+            error_message = f"<span style='color:red'>{e}</span>"
+            self.statusLabel.setText(f"Failed to open file: {error_message}")
 
     def initMenubar(self):
 
@@ -45,15 +1194,44 @@ class Main(QtWidgets.QMainWindow):
         self.view = menubar.addMenu("View")
         self.Help = menubar.addMenu("Help")
 
+        right_widget = QWidget(self)
+        right_layout = QHBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setAlignment(Qt.AlignCenter)
+
+        # Add widgets to the right widget
+     
+#         self.FinderLine = QtWidgets.QLineEdit()
+#         self.FinderLine.setStyleSheet("""
+# font-family: arial;
+# background:#89A4F3;
+# border-radius:5px;
+# font-size:17px;
+# padding:2px;
+# width:400px;
+# margin-top:3px;
+# margin-right:750px;
+#             """)
+        
+#         right_layout.addWidget(self.FinderLine)
+
+        # Set the right widget as the menu bar's right corner widget
+        menubar.setCornerWidget(right_widget, Qt.TopRightCorner)
+
         # Add the most important actions to the menubar
 
         self.settingAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\setwinico.png"),"Settings",self)
         self.settingAction.setStatusTip("Settings")
         self.settingAction.triggered.connect(self.settingswin)
 
+        self.editpagebodyashtml = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\edithtmlpagebody.png"),"Format page HTML",self)
+        self.editpagebodyashtml.setStatusTip("Edit page body using HTML")
+        self.editpagebodyashtml.triggered.connect(self.editBody)
+
         self.file.addAction(self.newAction)
         self.file.addAction(self.openAction)
         self.file.addAction(self.saveAction)
+        self.file.addAction(self.saveasPDFAction)
         self.file.addSeparator()
         self.file.addAction(self.printAction)
         self.file.addAction(self.previewAction)
@@ -68,6 +1246,8 @@ class Main(QtWidgets.QMainWindow):
         self.edit.addAction(self.pasteAction)
         self.edit.addAction(self.selectallAction)
         self.edit.addSeparator()
+        self.edit.addAction(self.editpagebodyashtml)
+        self.edit.addSeparator()
         self.edit.addMenu(self.edit_template_submenu)
         self.Letter_temp_action = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\letter_template.png"),"Letter template")
         self.Letter_temp_action.triggered.connect(self.letter_temp_exec)
@@ -81,9 +1261,8 @@ class Main(QtWidgets.QMainWindow):
         self.insert.addAction(self.imageAction)
         self.insert.addAction(self.symbolAction)
 
-        # Toggling actions for the various bars
-        toolbarAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\toolbar.png"),"Toggle Ribbon",self)
-        toolbarAction.triggered.connect(self.toggleRibbon)
+        ribbonAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\toolbar.png"),"Toggle Ribbon",self)
+        ribbonAction.triggered.connect(self.toggleribbon)
 
         formulabarAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\formulabar.png"),"Toggle Formulabar",self)
         formulabarAction.triggered.connect(self.toggleFormulabar)
@@ -91,14 +1270,180 @@ class Main(QtWidgets.QMainWindow):
         statusbarAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\statusbar.png"),"Toggle Statusbar",self)
         statusbarAction.triggered.connect(self.toggleStatusbar)
 
-        self.view.addAction(toolbarAction)
+        lefttabaction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\toolbar.png"),"Move Tabs to Left",self)
+        lefttabaction.triggered.connect(self.toggletableft)
+
+        centertabaction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\formulabar.png"),"Move Tabs to Center",self)
+        centertabaction.triggered.connect(self.toggletabcenter)
+
+        righttabaction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\statusbar.png"),"Move Tabs to Right",self)
+        righttabaction.triggered.connect(self.toggletabright)
+
+        self.view.addAction(ribbonAction)
         self.view.addAction(formulabarAction)
         self.view.addAction(statusbarAction)
+        self.view.addSeparator()
+        self.view.addAction(lefttabaction)
+        self.view.addAction(centertabaction)
+        self.view.addAction(righttabaction)
 
         About = QtWidgets.QAction("About",self)
         About.triggered.connect(self.abtactionfunc)
 
         self.Help.addAction(About)
+
+    def toggletableft(self):
+        self.set_tabbar_alignment("left")
+
+    def toggletabcenter(self):
+        self.set_tabbar_alignment("center")
+
+    def toggletabright(self):
+        self.set_tabbar_alignment("right")
+
+    def set_tabbar_alignment(self, alignment):
+        # Remove any existing stylesheet from the tab widget
+        self.tab_widget.setStyleSheet("")
+
+        # Define a new stylesheet with updated alignment
+        if alignment == "left":
+            stylesheet = """
+            QTabWidget::pane { /* The tab widget frame */
+            background: white;
+            border-radius: 10px;
+            height:140px;
+        }
+        QTabWidget::tab-bar {
+            alignment: left;
+        }
+        
+        QTabBar::tab {
+            background: #e3e5e9;
+            border: 0px solid #e3e5e9;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-size:15px;
+        }
+                                      
+        QTabBar::tab:hover {
+            background: #e3e5e9;
+            border-bottom: 0px solid gray;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-weight:bold;
+                                      font-size:15px;
+        }
+        
+        QTabBar::tab:selected {
+            background: #e3e5e9;
+            border-bottom: 3px solid royalblue;
+            color:royalblue;
+            padding: 5px;
+            border-radius:3px;
+                                      font-weight:bold;
+        }
+            """
+        elif alignment == "center":
+            stylesheet = """
+           QTabWidget::pane { /* The tab widget frame */
+            background: white;
+            border-radius: 10px;
+            height:140px;
+        }
+        QTabWidget::tab-bar {
+            alignment: center;
+        }
+        
+        QTabBar::tab {
+            background: #e3e5e9;
+            border: 0px solid #e3e5e9;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-size:15px;
+        }
+                                      
+        QTabBar::tab:hover {
+            background: #e3e5e9;
+            border-bottom: 0px solid gray;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-weight:bold;
+                                      font-size:15px;
+        }
+        
+        QTabBar::tab:selected {
+            background: #e3e5e9;
+            border-bottom: 3px solid royalblue;
+            color:royalblue;
+            padding: 5px;
+            border-radius:3px;
+                                      font-weight:bold;
+        }
+            """
+        elif alignment == "right":
+            stylesheet = """
+            QTabWidget::pane { /* The tab widget frame */
+            background: white;
+            border-radius: 10px;
+            height:140px;
+        }
+        QTabWidget::tab-bar {
+            alignment: right;
+        }
+        
+        QTabBar::tab {
+            background: #e3e5e9;
+            border: 0px solid #e3e5e9;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-size:15px;
+        }
+                                      
+        QTabBar::tab:hover {
+            background: #e3e5e9;
+            border-bottom: 0px solid gray;
+            padding: 5px;
+            width:70px;
+            border-radius:3px;
+            font-family: Arial;
+                                      font-weight:bold;
+                                      font-size:15px;
+        }
+        
+        QTabBar::tab:selected {
+            background: #e3e5e9;
+            border-bottom: 3px solid royalblue;
+            color:royalblue;
+            padding: 5px;
+            border-radius:3px;
+                                      font-weight:bold;
+        }
+            """
+
+        # Apply the updated stylesheet to the tab widget
+        self.tab_widget.setStyleSheet(stylesheet)
+
+    def editBody(self):
+        all = self.text.document().toHtml()
+        body = all.partition("<body style=")[2].partition(">")[0]
+        dlg = QInputDialog()
+        mybody, ok = dlg.getText(self, 'change body style', "", QLineEdit.Normal, body, Qt.Dialog)
+        if ok:
+            new = all.replace(body, mybody)    
+            self.text.document().setHtml(new)
+            self.statusBar().showMessage("body style changed")
+        else:
+            self.statusBar().showMessage("body style not changed")
 
     def initToolbar(self):
 
@@ -118,6 +1463,11 @@ class Main(QtWidgets.QMainWindow):
         self.saveAction.setStatusTip("Save document")
         self.saveAction.setShortcut("Ctrl+S")
         self.saveAction.triggered.connect(self.save)
+
+        self.saveasPDFAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\saveaspdf.png"),"Save As PDF",self)
+        self.saveasPDFAction.setStatusTip("Save document")
+        self.saveasPDFAction.setShortcut("Ctrl+S")
+        self.saveasPDFAction.triggered.connect(self.save_as_pdf)
 
         self.printAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\print.png"),"Print document",self)
         self.printAction.setStatusTip("Print document")
@@ -170,56 +1520,18 @@ class Main(QtWidgets.QMainWindow):
         self.translateAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\translate.png"),"Translate",self)
         self.translateAction.setStatusTip("Explore Templates")
         self.translateAction.triggered.connect(self.translate_Dialog)
-        
 
-        self.toolbar = self.addToolBar("Options")
-        self.toolbar.setFloatable(False)
-        self.toolbar.setMovable(False)
-        self.toolbar.setIconSize(QSize(20,20))
+    def save_as_pdf(self):
+        # Get the file name and path to save the PDF
+        file_dialog = QFileDialog(self)
+        file_path, _ = file_dialog.getSaveFileName(self, "Save as PDF", "", "PDF files (*.pdf);;All files (*.*)")
 
-        self.toolbar.addAction(self.newAction)
-        self.toolbar.addAction(self.openAction)
-        self.toolbar.addAction(self.saveAction)
-
-        self.toolbar.addSeparator()
-
-        self.toolbar.addAction(self.printAction)
-        self.toolbar.addAction(self.previewAction)
-
-        self.toolbar.addSeparator()
-
-        self.toolbar.addAction(self.cutAction)
-        self.toolbar.addAction(self.copyAction)
-        self.toolbar.addAction(self.pasteAction)
-        self.toolbar.addAction(self.selectallAction)
-        self.toolbar.addAction(self.undoAction)
-        self.toolbar.addAction(self.redoAction)
-
-        self.toolbar.addSeparator()
-
-        self.toolbar.addAction(self.templateAction)
-
-        self.toolbar.addSeparator()
-
-        self.toolbar.addAction(self.translateAction)
-
-        shadow_effect = QGraphicsDropShadowEffect()
-        shadow_effect.setBlurRadius(10)
-        shadow_effect.setColor(QtGui.QColor(136, 136, 136))
-        shadow_effect.setXOffset(2)
-        shadow_effect.setYOffset(2)
-        self.toolbar.setGraphicsEffect(shadow_effect)
-
-    
-        self.toolbar.setStyleSheet("""background:white;
-border-top-right-radius:7px;
-border-top-left-radius:7px;
-margin-top:1px;
-margin-left:7px;
-margin-right:7px;
-padding:2px;""")
-
-        self.addToolBarBreak()
+        if file_path:
+            # Create a QPrinter object
+            printer = QPrinter(QPrinter.HighResolution)
+            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer.setOutputFileName(file_path)
+            self.text.document().print_(printer)
 
     def translate_Dialog(self):
         translate_dialog = QDialog()
@@ -248,13 +1560,17 @@ padding:2px;""")
         translated_text_box.setReadOnly(True)
         layout.addWidget(translated_text_box)
 
+        copy_button = QPushButton("Copy", translate_dialog)
+        copy_button.clicked.connect(lambda: QApplication.clipboard().setText(translated_text_box.toPlainText()))
+        layout.addWidget(copy_button)
+
         # Button to trigger translation
         translate_button = QPushButton("Translate", translate_dialog)
         translate_button.clicked.connect(lambda: self.translate_text(input_text_box, source_language, target_language, translated_text_box))
         layout.addWidget(translate_button)
 
         # Translate Selection Button
-        translate_selection_button = QPushButton("Translate Selection", translate_dialog)
+        translate_selection_button = QPushButton("Translate and Replace Selection", translate_dialog)
         translate_selection_button.clicked.connect(lambda: self.translate_selection(input_text_box, source_language, target_language, translated_text_box))
         layout.addWidget(translate_selection_button)
 
@@ -296,6 +1612,8 @@ padding:2px;""")
         cursor.insertText(translated_text)
         cursor_sel = self.text.textCursor()
         cursor_sel.insertText(translated_text)
+
+    
 
 
     def template_Dialog(self):
@@ -504,20 +1822,10 @@ Attach your resume here.
 
     def initInsertbar(self):
 
-        self.insertbar = self.addToolBar("Insert")
-        self.insertbar.setIconSize(QSize(20,20))
-        self.insertbar.setFloatable(False)
-        self.insertbar.setMovable(False)
-
         self.dateTimeAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\datetime.png"),"Insert current date/time",self)
         self.dateTimeAction.setStatusTip("Insert current date/time")
         self.dateTimeAction.setShortcut("Ctrl+D")
         self.dateTimeAction.triggered.connect(self.calendershow)
-
-##        wordCountAction = QtWidgets.QAction(QtGui.QIcon("icons/count.png"),"See word/symbol count",self)
-##        wordCountAction.setStatusTip("See word/symbol count")
-##        wordCountAction.setShortcut("Ctrl+W")
-##        wordCountAction.triggered.connect(self.wordCount)
 
         self.tableAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\table.png"),"Insert table",self)
         self.tableAction.setStatusTip("Insert table")
@@ -532,31 +1840,8 @@ Attach your resume here.
         self.symbolAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\symico.png"),"Symbols",self)
         self.symbolAction.triggered.connect(self.symbol_win)
 
-        self.insertbar.addAction(self.dateTimeAction)
-        self.insertbar.addAction(self.tableAction)
-        self.insertbar.addAction(self.imageAction)
-
-        self.insertbar.addSeparator()
-
-        self.insertbar.addAction(self.symbolAction)
-
-        shadow_effect = QGraphicsDropShadowEffect()
-        shadow_effect.setBlurRadius(10)
-        shadow_effect.setColor(QtGui.QColor(136, 136, 136))
-        shadow_effect.setXOffset(2)
-        shadow_effect.setYOffset(2)
-        self.insertbar.setGraphicsEffect(shadow_effect)
-
-    
-        self.insertbar.setStyleSheet("""background:white;
-border-bottom-right-radius:7px;
-border-bottom-left-radius:7px;
-margin-left:7px;
-margin-right:7px;
-border:;
-padding:2px;""")
-
-        self.addToolBarBreak()
+        self.equationAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\equation.png"),"Equation",self)
+        self.equationAction.triggered.connect(self.eq_win)
 
     def tableDialog(self):
         self.dialog = QDialog()
@@ -617,11 +1902,10 @@ padding:2px;""")
         border_type = self.border_combobox.currentText()
 
         if not rows_text or not columns_text:
-            QMessageBox.warning(self.dialog, 'Warning', 'Please enter the number of rows and columns.')
-            return
+            self.show_warning_message_ent_rc()
 
         if not rows_text.isdigit() or not columns_text.isdigit():
-            QMessageBox.warning(self.dialog, 'Warning', 'Invalid input for rows or columns. Please enter numerical values.')
+            self.show_warning_message_inval_rc()
             return
 
         if border_type == 'Thick':
@@ -629,17 +1913,85 @@ padding:2px;""")
         elif border_type == 'Thin':
             self.insertTablethin()
 
+    def show_warning_message_ent_rc(self):
+        popup = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
+                                    'Warning',
+                                    'Please enter the number of rows and columns.',
+                                    parent=self.dialog)
+        
+        # Apply custom stylesheet to the QMessageBox
+        popup.setStyleSheet("""
+                                QLabel{
+                                font-size:15px;
+                                font-weight: bold;
+                                }
+            QPushButton {
+                background-color: light grey; /* Button background color */
+                color: black; /* Button text color */
+                border: 1px solid #c6c6c6; /* Button border */
+                padding: 5px 10px; /* Button padding */
+                margin: 5px; /* Button margin */
+                border-radius: 5px; /* Button border radius */
+                font-family: Arial; /* Button font family */
+                font-size: 15px; /* Button font size */
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0; /* Hover background color */
+                                color:royalblue;
+                                border:1px solid royalblue;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0; /* Pressed background color */
+            }
+        """)
+
+        popup.exec_()
+
+    def show_warning_message_inval_rc(self):
+        popup = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
+                                    'Warning',
+                                    'Please enter the number of rows and columns.',
+                                    parent=self.dialog)
+        
+        # Apply custom stylesheet to the QMessageBox
+        popup.setStyleSheet("""
+                                QLabel{
+                                font-size:15px;
+                                font-weight: bold;
+                                }
+            QPushButton {
+                background-color: light grey; /* Button background color */
+                color: black; /* Button text color */
+                border: 1px solid #c6c6c6; /* Button border */
+                padding: 5px 10px; /* Button padding */
+                margin: 5px; /* Button margin */
+                border-radius: 5px; /* Button border radius */
+                font-family: Arial; /* Button font family */
+                font-size: 15px; /* Button font size */
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0; /* Hover background color */
+                                color:royalblue;
+                                border:1px solid royalblue;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0; /* Pressed background color */
+            }
+        """)
+
+        popup.exec_()
+
     def insertTablethick(self):
         rows_text = self.rows_edit.text().strip()
         columns_text = self.columns_edit.text().strip()
 
         if not rows_text or not columns_text:
-            QMessageBox.warning(self.dialog, 'Warning', 'Please enter the number of rows and columns.')
-            return
+            self.show_warning_message_ent_rc()
 
         if not rows_text.isdigit() or not columns_text.isdigit():
-            QMessageBox.warning(self.dialog, 'Warning', 'Invalid input for rows or columns.')
-            return
+            self.show_warning_message_inval_rc()
 
         cursor = self.text.textCursor()
         rows = int(rows_text)
@@ -680,90 +2032,42 @@ padding:2px;""")
 
     def initFormatbar(self):
 
-        self.formatbar = self.addToolBar("Format")
-        self.formatbar.setIconSize(QSize(20,20))
-        self.formatbar.setFloatable(False)
-        self.formatbar.setMovable(False)
+        self.boldAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\bold.png"),"Bold",self)
+        self.boldAction.triggered.connect(self.bold)
 
-        fontBox = QtWidgets.QFontComboBox(self)
-        fontBox.currentFontChanged.connect(lambda font: self.text.setCurrentFont(font))
-        fontBox.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        fontBox.setMaximumSize(180, 28)
-        fontBox.setStyleSheet("""font-size: 15px;
-margin-left:10px;
-            """)
+        self.italicAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\italic.png"),"Italic",self)
+        self.italicAction.triggered.connect(self.italic)
 
-        fontSize = QtWidgets.QComboBox(self)
-        fontSize.setEditable(True)
-        fontSize.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        fontSize.setMaximumSize(70, 28)
-        fontSize.setStyleSheet("""font-size: 15px;
-margin-left:3px;
-            """)
-        # Add items to the combo box
-        for size in range(8, 100, 2):
-            fontSize.addItem(f"{size} pt")
+        self.underlAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\underline.png"),"Underline",self)
+        self.underlAction.triggered.connect(self.underline)
 
-        # Connect the signal
-        fontSize.currentIndexChanged.connect(self.setFontSize)
+        self.strikeAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\strikeout.png"),"Strike-out",self)
+        self.strikeAction.triggered.connect(self.strike)
 
-        # Set initial value
-        fontSize.setCurrentIndex(1)
+        self.superAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\superscript.png"),"Superscript",self)
+        self.superAction.triggered.connect(self.superScript)
 
-        fontColor = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\fontcolor.png"),"Change font color",self)
-        fontColor.triggered.connect(self.fontColorChanged)
+        self.subAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\subscript.png"),"Subscript",self)
+        self.subAction.triggered.connect(self.subScript)
 
-        bgAct = QtWidgets.QAction("change Background Color",self,  triggered=self.changeBGColor)
-        bgAct.setStatusTip("change Background Color")
-        bgAct.setIcon(QIcon('C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\pgbgcolor.png'))
+        Capall = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\Lowall.png"),"Capitalize Selected Text",self)
+        Capall.triggered.connect(self.capitalizeSelectedText)
+        Lowall = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\Capall.png"),"Lowercase Selected Text",self)
+        Lowall.triggered.connect(self.lowercaseSelectedText)
 
-        boldAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\bold.png"),"Bold",self)
-        boldAction.triggered.connect(self.bold)
-
-        italicAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\italic.png"),"Italic",self)
-        italicAction.triggered.connect(self.italic)
-
-        underlAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\underline.png"),"Underline",self)
-        underlAction.triggered.connect(self.underline)
-
-        strikeAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\strikeout.png"),"Strike-out",self)
-        strikeAction.triggered.connect(self.strike)
-
-        superAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\superscript.png"),"Superscript",self)
-        superAction.triggered.connect(self.superScript)
-
-        subAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\subscript.png"),"Subscript",self)
-        subAction.triggered.connect(self.subScript)
-
-        self.comboStyle = QComboBox(self.formatbar)
-        index = 0
-        self.comboStyle.setEditable(True)
-        icon = QIcon('C:\\Users\\rishi\\OneDrive\\Desktop\\Vidwo Worsksuit SCRIPT\\ICON\\bulletlist.png')
-        self.comboStyle.setItemIcon(0 , QIcon('C:\\Users\\rishi\\OneDrive\\Desktop\\Vidwo Worsksuit SCRIPT\\ICON\\bulletlist.png'))
-        self.comboStyle.addItem("⚫")
-        self.comboStyle.addItem("⚪")
-        self.comboStyle.addItem("■")
-        self.comboStyle.addItem("1.")
-        self.comboStyle.addItem("a.")
-        self.comboStyle.addItem("A.")
-        self.comboStyle.addItem("i")
-        self.comboStyle.addItem("I.")
-        self.comboStyle.setStyleSheet("""
-font-size:17px;
-""")
         self.comboStyle.activated.connect(self.textStyle)
 
-        alignLeft = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\left.png"),"Align left",self)
-        alignLeft.triggered.connect(self.alignLeft)
+        self.alignLeft = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\left.png"),"Align left",self)
+        self.alignLeft.triggered.connect(self.alignLeftf)
 
-        alignCenter = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\center.png"),"Align center",self)
-        alignCenter.triggered.connect(self.alignCenter)
+        self.alignCenter = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\center.png"),"Align center",self)
+        self.alignCenter.triggered.connect(self.alignCenterf)
 
-        alignRight = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\right.png"),"Align right",self)
-        alignRight.triggered.connect(self.alignRight)
+        self.alignRight = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\right.png"),"Align right",self)
+        self.alignRight.triggered.connect(self.alignRightf)
 
-        alignJustify = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\justify.png"),"Align justify",self)
-        alignJustify.triggered.connect(self.alignJustify)
+        self.alignJustify = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\justify.png"),"Align justify",self)
+        self.alignJustify.triggered.connect(self.alignJustifyf)
 
         indentAction = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\indent.png"),"Indent Area",self)
         indentAction.setShortcut("Ctrl+Tab")
@@ -773,86 +2077,63 @@ font-size:17px;
         dedentAction.setShortcut("Shift+Tab")
         dedentAction.triggered.connect(self.dedent)
 
-        backColor = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\bgcolor.png"),"Change background color",self)
-        backColor.triggered.connect(self.highlight)
+        self.backColor = QtWidgets.QAction(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\bgcolor.png"),"Change background color",self)
+        self.backColor.triggered.connect(self.highlight)
 
+    def capitalizeSelectedText(self):
+        cursor = self.text.textCursor()
+        if not cursor.hasSelection():
+            return
+        
+        selected_text = cursor.selectedText()
+        cursor.beginEditBlock()
+        cursor.insertText(selected_text.upper())  # Capitalize the selected text
+        cursor.endEditBlock()
+        
+        self.text.setTextCursor(cursor)
 
-        self.formatbar.addWidget(fontBox)
-        self.formatbar.addWidget(fontSize)
+    def lowercaseSelectedText(self):
+        cursor = self.text.textCursor()
+        if not cursor.hasSelection():
+            return
+        
+        selected_text = cursor.selectedText()
+        cursor.beginEditBlock()
+        cursor.insertText(selected_text.lower())  # Lowercase the selected text
+        cursor.endEditBlock()
+        
+        self.text.setTextCursor(cursor)
 
-        self.formatbar.addSeparator()
+    def swapcaseSelectedText(self):
+        cursor = self.text.textCursor()
+        if not cursor.hasSelection():
+            return
+        
+        selected_text = cursor.selectedText()
+        cursor.beginEditBlock()
+        cursor.insertText(selected_text.swapcase())  # Lowercase the selected text
+        cursor.endEditBlock()
+        
+        self.text.setTextCursor(cursor)
 
-        self.formatbar.addAction(fontColor)
-        self.formatbar.addAction(backColor)
-        self.formatbar.addAction(bgAct)
-
-        self.formatbar.addSeparator()
-
-        self.formatbar.addAction(boldAction)
-        self.formatbar.addAction(italicAction)
-        self.formatbar.addAction(underlAction)
-        self.formatbar.addAction(strikeAction)
-        self.formatbar.addAction(superAction)
-        self.formatbar.addAction(subAction)
-
-        self.formatbar.addSeparator()
-
-        self.formatbar.addWidget(self.comboStyle)
-
-        self.formatbar.addSeparator()
-
-        self.formatbar.addAction(alignLeft)
-        self.formatbar.addAction(alignCenter)
-        self.formatbar.addAction(alignRight)
-        self.formatbar.addAction(alignJustify)
-
-        shadow_effect = QGraphicsDropShadowEffect()
-        shadow_effect.setBlurRadius(10)
-        shadow_effect.setColor(QtGui.QColor(136, 136, 136))
-        shadow_effect.setXOffset(2)
-        shadow_effect.setYOffset(2)
-        self.formatbar.setGraphicsEffect(shadow_effect)
-
-        self.formatbar.setStyleSheet("""
-background:white;
-margin-left:7px;
-margin-right:7px;
-padding:2px;
-border:0px;
-QToolBar QToolButton:hover {
-                background-color: lightgrey;
-            }
-""")
-
-        self.formatbar.addSeparator()
-
-
-        self.formatbar.addAction(indentAction)
-        self.formatbar.addAction(dedentAction)
-
-        self.addToolBarBreak()
+    def applyFormatting(self):
+        # Get the selected underline style from the combo box
+        index = self.underline_combo.currentIndex()
+        underline_style = self.underline_combo.itemData(index)
+        
+        # Get the current QTextCursor
+        cursor = self.text.textCursor()
+        
+        # Create a QTextCharFormat for underline style
+        underline_format = QTextCharFormat()
+        underline_format.setUnderlineStyle(underline_style)
+        
+        # Apply the format to the selected text range
+        cursor.mergeCharFormat(underline_format)
+        self.text.setTextCursor(cursor)
 
     def editHTML(self):
-        rtext = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
-<html><head><meta name="qrichtext" content="1" /><style type="text/css">
-p, li { white-space: pre-wrap; }
-</style></head><body>""" + '\n'
-        btext = """<!--EndFragment--></p></body></html>"""
-        all = self.editor.textCursor().selection().toHtml()
-        #dlg = QInputDialog(self, Qt.Window)
-
-        #dlg.setOption(QInputDialog.UsePlainTextEditForTextInput, True)
-        #new, ok = dlg.getMultiLineText(self, 'change HTML', "edit HTML", all.replace(rtext, ""))
-        #if ok:
-        #    self.editor.textCursor().insertHtml(new)
-        #    self.statusBar().showMessage("HTML changed")
-        #else:
-        #    self.statusBar().showMessage("HTML not changed")
-        
-        self.heditor = htmlEditor()
-        self.heditor.ed.setPlainText(all.replace(rtext, "").replace(btext, ""))
-        self.heditor.setGeometry(0, 0, 800, 600)
-        self.heditor.show()
+        pass
 
     def changeBGColor(self):
         all = self.text.document().toHtml()
@@ -987,25 +2268,75 @@ Amet massa vitae tortor condimentum lacinia quis. Mattis ullamcorper velit sed u
     def initUI(self):
 
         self.text = QtWidgets.QTextEdit(self)
+        a4_width_mm = 210
+        mm_per_inch = 25.4
+        dpi = 96
+        a4_width_pixels = int((a4_width_mm / mm_per_inch) * dpi)
+        self.text.setFixedSize(a4_width_pixels, 700)  # Set height as needed
         self.text.setAutoFormatting(QtWidgets.QTextEdit.AutoAll)
+        self.text.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.text.customContextMenuRequested.connect(self.context_menu)
         self.text.setCursorWidth(1)
-        self.text.setFixedWidth(1930)
+        self.text.setFixedWidth(a4_width_pixels)
         self.text.setUndoRedoEnabled(True)
         self.text.setTabChangesFocus(True)
         self.text.setAcceptRichText(True)
-        self.text.setOverwriteMode(True)
+        self.text.setOverwriteMode(False)
+        self.text.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.text.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.text.setStyleSheet("""
-
-border-radius:10px;
-margin-top:10px;
-margin-bottom:10px;
-padding:5px;
-background: white;
-border:1px solid #c6c6c6;
-color: black;
-selection-background-color: #0033ff;
-selection-color: #ffffff;
-
+QTextEdit {
+                padding: 5px;
+                background: white;
+                border: 1px solid #c6c6c6;
+                color: black;
+                selection-background-color: #0033ff;
+                selection-color: #ffffff;
+                border-radius:10px;
+            }
+            QScrollBar:vertical {
+                background: rgba(0, 0, 0, 0);
+                width: 12px;
+                margin: 0px 0px 0px 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #b0b0b0;
+                min-height: 20px;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical {
+                background: #c6c6c6;
+                height: 0px;
+                subcontrol-position: bottom;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::sub-line:vertical {
+                background: #c6c6c6;
+                height: 0px;
+                subcontrol-position: top;
+                subcontrol-origin: margin;
+            }
+            QScrollBar:horizontal {
+                background: rgba(0, 0, 0, 0);
+                height: 9px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #b0b0b0;
+                min-width: 20px;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:horizontal {
+                background: #c6c6c6;
+                width: 0px;
+                subcontrol-position: right;
+                subcontrol-origin: margin;
+            }
+            QScrollBar::sub-line:horizontal {
+                background: #c6c6c6;
+                width: 0px;
+                subcontrol-position: left;
+                subcontrol-origin: margin;
+            }
             """)
 
         self.cursorVisibility = QCheckBox("")
@@ -1022,13 +2353,23 @@ margin-right:5px;
         # more or less 8 spaces
         self.text.setTabStopWidth(33)
 
+        self.tab_widget = QTabWidget()
+
+        self.create_tabs()
         self.initToolbar()
         self.initFormatbar()
         self.initInsertbar()
-        self.initFormulabar()
         self.initMenubar()
+        self.initFormulabar()
 
-        self.setCentralWidget(self.text)
+        container_widget = QWidget()
+        self.setCentralWidget(container_widget)
+
+        # Create a layout for the container widget
+        container_layout = QVBoxLayout(container_widget)
+        container_layout.addWidget(self.tab_widget)
+        container_layout.addWidget(self.Formulabar)
+        container_layout.addWidget(self.text, alignment=QtCore.Qt.AlignCenter)
 
         # Initialize a statusbar for the window
 
@@ -1039,7 +2380,7 @@ margin-right:5px;
         self.abtaction = QPushButton(QtGui.QIcon("C:\\Users\\rishi\\OneDrive\\Documents\\VS_Icons\\abouticon.png"),"",self)
         self.abtaction.setIconSize(QSize(20,20))
         self.abtaction.pressed.connect(self.abtactionfunc)
-        self.abtaction.setToolTip('About RM Script') 
+        self.abtaction.setToolTip('About Vidwo Script') 
         self.abtaction.setStyleSheet("""
 background:#f5f5f5;
 margin-right:5px;
@@ -1080,7 +2421,45 @@ margin:4px;
         self.text.customContextMenuRequested.connect(self.context)
 
         self.text.textChanged.connect(self.changed)
-        self.setWindowTitle("RM - Script")
+        self.setWindowTitle("Vidwo - Script")
+
+    def context_menu(self, position):
+        menu = QMenu()
+        menu.addAction(self.undoAction)
+        menu.addAction(self.redoAction)
+        menu.addAction(self.cutAction)
+        menu.addAction(self.copyAction)
+        menu.addAction(self.pasteAction)
+        menu.addAction(self.selectallAction)
+        menu.addAction(self.editpagebodyashtml)
+        menu.addSeparator()
+        menu.addAction(self.boldAction)
+        menu.addAction(self.italicAction)
+        menu.addAction(self.underlAction)
+        menu.addAction(self.alignLeft)
+        menu.addAction(self.alignCenter)
+        menu.addAction(self.alignRight)
+        menu.addAction(self.alignJustify)
+        menu.addAction(self.backColor)
+        menu.addAction(self.translateAction)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: white;
+                border: 1px solid lightgrey;
+                border-radius:5px;
+            }
+            QMenu::item {
+                padding:5px;
+                           margin:3px;
+            }
+            QMenu::item:hover {
+                background: royalblue;
+                           color:white;
+                           font-weight:bold;
+            }
+        """)
+
+        menu.exec_(self.text.mapToGlobal(position))
 
     def move_to_end(self):
         cursor = self.text.textCursor()
@@ -1128,7 +2507,7 @@ border-radius:6px;
         self.curwidchangeL.setStyleSheet("""
 color:Black;
 margin-top:7px;
-background:lightgrey;
+background:#C5C3C3;
 """)
 
         curwidrange = QSlider(Qt.Orientation.Horizontal, self)
@@ -1142,23 +2521,22 @@ background:lightgrey;
 
         curwidrange.valueChanged.connect(self.curwidchanger)
 
-        
-        
         layout = QFormLayout()
         Textcusror.setLayout(layout)
         layout.addRow(self.curwidchangeL)
         layout.addRow(curwidrange)
 
-        # contact pane
-        contact_page = QWidget(self)
-        layout = QFormLayout()
-        contact_page.setLayout(layout)
-
         # add pane to the tab widget
         tab.addTab(Textcusror, 'Text Cursor')
-        tab.addTab(contact_page, 'Contact Info')
+
 
         self.settingwin.exec()
+
+    def toggletoRichText(self, state):
+        if state == Qt.Checked:
+            self.text.setAcceptRichText(False)
+        else:
+            self.text.setAcceptRichText(True)
 
     def curwidchanger(self, value):
         self.text.setCursorWidth(int(value))
@@ -1703,6 +3081,97 @@ background:white;
         
         self.sywin.show()
 
+    def eq_win(self):
+        self.eqwin = QDialog(self)
+        self.eqwin.setWindowTitle("Equations")
+        self.eqwin.setStyleSheet("background:white;")
+
+        tsymcursor = self.text.textCursor()
+
+        trigo_fn = {
+            "sin": "sin()",
+            "cos": "cos()",
+            "tan": "tan()",
+            "cosec": "cosec()",
+            "sec": "sec()",
+            "cot": "cot()",
+            "sinh": "sinh()",
+            "cosh": "cosh()",
+            "tanh": "tanh()",
+            "cosech": "cosech()",
+            "sech": "sech()",
+            "coth": "coth()",
+            "sin⁻¹": "sin⁻¹()",
+            "cos⁻¹": "cos⁻¹()",
+            "tan⁻¹": "tan⁻¹()",
+            "cosec⁻¹": "cosec⁻¹()",
+            "sec⁻¹": "sec⁻¹()",
+            "cot⁻¹": "cot⁻¹()",
+            "sinh⁻¹": "sinh⁻¹()",
+            "cosh⁻¹": "cosh⁻¹()",
+            "tanh⁻¹": "tanh⁻¹()",
+            "cosech⁻¹": "cosech⁻¹()",
+            "sech⁻¹": "sech⁻¹()",
+            "coth⁻¹": "coth⁻¹()"
+        }
+
+        log_fn = {
+            "log": "log()",
+            "ln": "ln()",
+            "log⁻¹": "log⁻¹()"
+        }
+
+        def create_button(text, parent, slot):
+            button = QPushButton(text, parent)
+            button.setFixedSize(80, 30)
+            button.setFont(QFont("Arial", 10, QFont.Bold))
+            button.pressed.connect(slot)
+            return button
+
+        # Create a tab widget
+        tab = QTabWidget(self.eqwin)
+        tab.setGeometry(10, 10, 370, 280)  # Adjust the geometry as needed
+        
+
+        # Create the tab for Trigonometric Functions
+        trig_functions_tab = QWidget()
+        trig_grid = QGridLayout(trig_functions_tab)
+
+        # Add buttons for trigonometric functions
+        row, column = 0, 0
+        for name, letter in trigo_fn.items():
+            button = create_button(letter, trig_functions_tab, lambda letter=letter: tsymcursor.insertText(letter))
+            setattr(self, name.replace('⁻¹', '⁻'), button)  # Set the button as an attribute of the class
+            trig_grid.addWidget(button, row, column)
+            column += 1
+            if column > 3:  # Adjust column limit as per your layout
+                column = 0
+                row += 1
+
+        trig_functions_tab.setLayout(trig_grid)
+
+        log_functions_tab = QWidget()
+        log_grid = QGridLayout(log_functions_tab)
+
+        # Add buttons for trigonometric functions
+        row, column = 0, 0
+        for name, letter in log_fn.items():
+            button = create_button(letter, log_functions_tab, lambda letter=letter: tsymcursor.insertText(letter))
+            setattr(self, name.replace('⁻¹', '⁻'), button)  # Set the button as an attribute of the class
+            log_grid.addWidget(button, row, column)
+            column += 1
+            if column > 3:  # Adjust column limit as per your layout
+                column = 0
+                row += 1
+
+        log_functions_tab.setLayout(trig_grid)
+
+        # Add the Trigonometric Functions tab to the tab widget
+        tab.addTab(trig_functions_tab, "Trigonometric Functions")
+        tab.addTab(log_functions_tab, "Logarithmic Functions")
+
+        self.eqwin.show()
+
     def plusf(self):
         cursor = self.text.textCursor()
         cursor.insertText("+")
@@ -1761,9 +3230,9 @@ border-radius:4px;
         vinlayout=QVBoxLayout(self.topframe)
 
         self.vidLabel = QLabel(self.topframe)
-        self.vidLabel.setText("RM")
+        self.vidLabel.setText("Vidwo")
         self.vidLabel.setFont(QFont("Arial Rounded MT Bold", 30, QFont.Bold))
-        self.vidLabel.setAlignment(Qt.AlignCenter)
+        self.vidLabel.setAlignment(Qt.self.alignCenter)
         self.vidLabel.setStyleSheet("""
 color:white;
 margin-left:40px;
@@ -1771,14 +3240,14 @@ margin-left:40px;
         self.sLabel = QLabel(self.topframe)
         self.sLabel.setText("|")
         self.sLabel.setFont(QFont("Fira Mono Bold", 30))
-        self.sLabel.setAlignment(Qt.AlignCenter)
+        self.sLabel.setAlignment(Qt.self.alignCenter)
         self.sLabel.setStyleSheet("""
 color:white;
 """)
         self.scLabel = QLabel(self.topframe)
         self.scLabel.setText("Script")
         self.scLabel.setFont(QFont("Fira Mono Bold", 20, QFont.Bold))
-        self.scLabel.setAlignment(Qt.AlignCenter)
+        self.scLabel.setAlignment(Qt.self.alignCenter)
         self.scLabel.setStyleSheet("""
 margin:0px;
 color:white;
@@ -1787,7 +3256,7 @@ margin-right:40px;
         self.pLabel = QLabel(self.topframe)
         self.pLabel.setText("PERSONAL")
         self.pLabel.setFont(QFont("Beware", 13))
-        self.pLabel.setAlignment(Qt.AlignCenter)
+        self.pLabel.setAlignment(Qt.self.alignCenter)
         self.pLabel.setStyleSheet("""
 color:lightgrey;
 margin:0px;
@@ -1915,27 +3384,44 @@ border-radius:4px;
         else:
         
             popup = QtWidgets.QMessageBox(self)
-
-            popup.setIcon(QtWidgets.QMessageBox.Warning)
-            
-            popup.setText("The document has been modified")
-            
-            popup.setInformativeText("Do you want to save your changes?")
-            
+            popup.setIcon(QtWidgets.QMessageBox.Question)
+            popup.setWindowTitle("Unsaved Changes")
+            popup.setStyleSheet("""
+                                QLabel{
+                                font-size:15px;
+                                font-weight: bold;
+                                }
+            QPushButton {
+                background-color: light grey; /* Button background color */
+                color: black; /* Button text color */
+                border: 1px solid #c6c6c6; /* Button border */
+                padding: 5px 10px; /* Button padding */
+                margin: 5px; /* Button margin */
+                border-radius: 5px; /* Button border radius */
+                font-family: Arial; /* Button font family */
+                font-size: 15px; /* Button font size */
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0; /* Hover background color */
+                                color:royalblue;
+                                border:1px solid royalblue;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0; /* Pressed background color */
+            }
+        """)
+            popup.setText("The document has been modified. \nDo you want to save your changes?")
             popup.setStandardButtons(QtWidgets.QMessageBox.Save   |
                                       QtWidgets.QMessageBox.Cancel |
                                       QtWidgets.QMessageBox.Discard)
-            
             popup.setDefaultButton(QtWidgets.QMessageBox.Save)
-
             answer = popup.exec_()
 
             if answer == QtWidgets.QMessageBox.Save:
                 self.save()
-
             elif answer == QtWidgets.QMessageBox.Discard:
                 event.accept()
-
             else:
                 event.ignore()
 
@@ -2002,25 +3488,10 @@ border-radius:4px;
 
         #     self.text.contextMenuEvent(event)
 
-    
+    def toggleribbon(self):
+        is_visible = self.tab_widget.isVisible()
+        self.tab_widget.setVisible(not is_visible)
 
-
-    def toggleRibbon(self):
-
-        state = self.toolbar.isVisible()
-
-        # Set the visibility to its inverse
-        self.toolbar.setVisible(not state)
-
-        state1 = self.insertbar.isVisible()
-
-        # Set the visibility to its inverse
-        self.insertbar.setVisible(not state1)
-
-        state2 = self.formatbar.isVisible()
-
-        # Set the visibility to its inverse
-        self.formatbar.setVisible(not state2)
 
     def toggleFormulabar(self):
 
@@ -2098,14 +3569,6 @@ border-radius:4px;
 
         self.statusbar.showMessage("Ln: {} | Col: {}".format(line,col))
 
-    def wordCount(self):
-
-        wc = wordcount.WordCount(self)
-
-        wc.getText()
-
-        wc.show()
-
     def insertImage(self):
 
         # Get image file name
@@ -2125,6 +3588,31 @@ border-radius:4px;
                                           "Could not load image file!",
                                           QtWidgets.QMessageBox.Ok,
                                           self)
+                popup.setStyleSheet("""
+                                QLabel{
+                                font-size:15px;
+                                font-weight: bold;
+                                }
+            QPushButton {
+                background-color: light grey; /* Button background color */
+                color: black; /* Button text color */
+                border: 1px solid #c6c6c6; /* Button border */
+                padding: 5px 10px; /* Button padding */
+                margin: 5px; /* Button margin */
+                border-radius: 5px; /* Button border radius */
+                font-family: Arial; /* Button font family */
+                font-size: 15px; /* Button font size */
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0; /* Hover background color */
+                                color:royalblue;
+                                border:1px solid royalblue;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0; /* Pressed background color */
+            }
+        """)
                 popup.show()
 
             else:
@@ -2220,16 +3708,16 @@ border-radius:4px;
         # Set the new format
         self.text.setCurrentCharFormat(fmt)
 
-    def alignLeft(self):
+    def alignLeftf(self):
         self.text.setAlignment(Qt.AlignLeft)
 
-    def alignRight(self):
+    def alignRightf(self):
         self.text.setAlignment(Qt.AlignRight)
 
-    def alignCenter(self):
+    def alignCenterf(self):
         self.text.setAlignment(Qt.AlignCenter)
 
-    def alignJustify(self):
+    def alignJustifyf(self):
         self.text.setAlignment(Qt.AlignJustify)
 
     def indent(self):
@@ -2341,6 +3829,46 @@ border-radius:4px;
 
 def myStyleSheet(self):
     return """
+    QPushButton{
+    padding:3px;
+    margin:0px;
+    border-radius:10px;
+    }
+QPushButton:hover{
+background-color:lightgrey;
+}
+QPushButton:selected{
+background-color:grey;
+}
+QTabWidget::pane { /* The tab widget frame */
+            background: white;
+            border-radius: 10px;
+        }
+        QTabWidget::tab-bar {
+            alignment: center;
+            border-radius:4px;
+            background:white;
+        }
+        
+        QTabBar::tab {
+            background: white;
+            border: 1px solid lightgrey;
+            padding: 5px;
+            width:150px;
+            border-radius:3px;
+            font-family: Arial;
+            margin-bottom:7px;
+        }
+        
+        QTabBar::tab:selected {
+            background: white;
+            border-bottom: 3px solid royalblue;
+            color:royalblue;
+            padding: 5px;
+            border-radius:3px;
+            margin-bottom:7px;
+        }
+
 QToolBar::item{
 background:#DCDCDC;
 optacity:0.35;
@@ -2419,37 +3947,11 @@ QScrollBar:horizontal:hover {
             subcontrol-position: top;
             subcontrol-origin: margin;
         }
-        
-QLineEdit{
-border-radius:7px;
-background:darkgrey;
-font-size:14px;
-padding:4px;
-}
-QLineEdit:focus{
-border-bottom: 2px solid #004F98;
-}
 
 QMainWindow
 {
 background:#e3e5e9;
 border-radius:4px;
-}
-
-QTextEdit
-{
-border-radius:10px;
-margin_top:5px;
-margin_bottom:5px;
-margin-left:300px;
-margin-right:300px;
-padding:5px;
-width:200px;
-color: black;
-selection-background-color: #0033ff;
-selection-color: #ffffff;
-}
-
 }
 QMenuBar
 {
@@ -2457,20 +3959,18 @@ margin-top:7px;
 margin-left:7px;
 margin-right:7px;
 margin-bottom:3px;
-border-radius:5px;
+border-radius:8px;
 background: royalblue;
-font-size:15px;
 width:50px;
-color:white;
 padding:3px;
+color:white;
 }
             QMenuBar::item {
-border-radius:5px;
 font-size:20px;
-
+alignment: center;
             }
             QMenuBar::item:selected {
-            border-radius:5px;
+            border-radius:4px;
             background-color:#1F4BE8;
             }
             QMenu {
@@ -2486,9 +3986,6 @@ background-color: white;
                 border-radius:5px;
             }
 
-QMenuBar:hover{
-font-size:15px bold;
-}
 QToolBar:
 {
 background:#DCDCDC
