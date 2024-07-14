@@ -1,5 +1,6 @@
 Main UI Image
 
+(new UI)
 ![Screenshot 2024-07-14 173909](https://github.com/user-attachments/assets/88061180-e816-4917-84eb-57cf9cc9623f)
 
 1. Multiple windows capability
@@ -28,14 +29,17 @@ Main UI Image
 
 8. Equation
 
+(new)
 ![Screenshot 2024-07-14 174850](https://github.com/user-attachments/assets/21e208c1-e908-48a8-8337-00fef9f85830)
 
 9. Style text using CSS
 
+(new)
 ![Designer](https://github.com/user-attachments/assets/80759be1-09ff-4095-b58c-c0f881225c6a)
 
 10. Remove all formatting
 
+(new)
 ![Designer (1)](https://github.com/user-attachments/assets/3e2eb0c5-9a55-45a6-a24e-c258681e20f4)
 
 ![Screenshot 2024-07-14 174635](https://github.com/user-attachments/assets/11b9777f-964d-464c-8ce5-ac31ad8e81af)
