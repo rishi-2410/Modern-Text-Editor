@@ -1,0 +1,7 @@
+<RCC>
+  <qresource prefix="newPrefix">
+    <file>seperator.png</file>
+    <file>Vid-Logo.png</file>
+    <file>VSLOGO.png</file>
+  </qresource>
+</RCC>
