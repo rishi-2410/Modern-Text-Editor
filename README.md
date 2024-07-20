@@ -2,8 +2,9 @@
 #### GUI Text editor / Word processor developed in Python.
 
 ![Static Badge](https://img.shields.io/badge/Python-blue?style=for-the-badge&logo=python&logoColor=yellow&logoSize=20&labelColor=grey&color=blue)
-![Static Badge](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&logo=License&logoColor=yellow&logoSize=20&labelColor=grey&color=red)
 ![Static Badge](https://img.shields.io/badge/GUI%20Module-PyQt5-green?style=for-the-badge&logo=PyQt5)
+
+![Static Badge](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&logo=License&logoColor=yellow&logoSize=20&labelColor=grey&color=red)
 
 ![Screenshot 2024-07-14 172745](https://github.com/user-attachments/assets/6ced2873-a457-4405-9cb2-5b0d2a483545)
 
