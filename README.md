@@ -4,7 +4,7 @@
 ![Static Badge](https://img.shields.io/badge/Python-blue?style=for-the-badge&logo=python&logoColor=yellow&logoSize=20&labelColor=grey&color=blue)
 ![Static Badge](https://img.shields.io/badge/GUI%20Module-PyQt5-green?style=for-the-badge&logo=PyQt5)
 
-![Static Badge](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge&logo=License&logoColor=yellow&logoSize=20&labelColor=grey&color=red)
+![Static Badge](https://img.shields.io/badge/License-GNU GENERAL PUBLIC LICENSE-blue?style=for-the-badge&logo=License&logoColor=yellow&logoSize=20&labelColor=grey&color=red)
 
 ## About Script
 Script is a modern looking text editor with lots of basic features.
